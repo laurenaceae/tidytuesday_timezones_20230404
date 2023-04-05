@@ -1,0 +1,97 @@
+---
+title: "timezones"
+author: "Lauren Harris"
+date: "4/4/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("tidytuesdayR")
+library(tidytuesdayR)
+library(tidyverse)
+```
+
+
+```{r}
+# Get the Data
+
+# Read in with tidytuesdayR package 
+# Install from CRAN via: install.packages("tidytuesdayR")
+# This loads the readme and all the datasets for the week of interest
+
+# Either ISO-8601 date or year/week works!
+
+# tuesdata <- tidytuesdayR::tt_load('2023-03-28')
+# tuesdata <- tidytuesdayR::tt_load(2023, week = 13)
+# 
+# transitions <- tuesdata$transitions
+# timezones <- tuesdata$timezones
+# timezone_countries <- tuesdata$timezone_countries
+# countries <- tuesdata$countries
+```
+
+```{r}
+transitions <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-03-28/transitions.csv')
+timezones <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-03-28/timezones.csv')
+timezone_countries <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-03-28/timezone_countries.csv')
+countries <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-03-28/countries.csv')
+```
+
+Map preliminary data
+```{r}
+
+world_coordinates <- map_data("world")
+
+ggplot() +
+  geom_map(
+    data = world_coordinates, map = world_coordinates,
+    aes(long, lat, map_id = region),
+    color = "white", fill = "darkgreen", size = 0.2
+  ) +
+  geom_point(data = timezones, aes(x = longitude, y = latitude))
+```
+
+Merge datasets
+```{r}
+merged_time <- left_join(x = timezones, y = transitions, by = "zone")
+
+merged_time <- left_join(x = merged_time, y = timezone_countries, by = "zone")
+
+merged_time <- left_join(x = merged_time, y = countries, by = "country_code")
+```
+
+Map by time zone
+```{r}
+ggplot() +
+  geom_map(
+    data = world_coordinates, map = world_coordinates,
+    aes(long, lat, map_id = region),
+    color = "white", fill = "darkgray", size = 0.2
+  ) +
+  geom_point(data = merged_time, aes(x = longitude, y = latitude, color = abbreviation))+
+  theme(legend.position="none")
+```
+Convert to date
+```{r}
+merged_time$end <- lubridate::as_datetime(merged_time$end)
+merged_time$end <- lubridate::ymd(merged_time$end)
+merged_time$begin <- lubridate::as_datetime(merged_time$begin)
+merged_time$begin <- lubridate::ymd(merged_time$begin)
+```
+
+Map by date started
+```{r}
+ggplot() +
+  geom_map(
+    data = world_coordinates, map = world_coordinates,
+    aes(long, lat, map_id = region),
+    color = "white", fill = "darkgray", size = 0.2
+  ) +
+  geom_point(data = merged_time, aes(x = longitude, y = latitude, color = begin))+
+  theme(legend.position="none")
+```
+
